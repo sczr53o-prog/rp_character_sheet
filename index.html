@@ -12,7 +12,10 @@
   tg.setBackgroundColor('#0d1117');
 
   window.saveToCloud = function(key, data) {
-    tg.CloudStorage.setItem(key, JSON.stringify(data), (err, ok) => {
+    // Фото не отправляем в облако, чтобы не превысить лимит в 4 КБ
+    let cloudData = JSON.parse(JSON.stringify(data));
+    cloudData.photo = ""; 
+    tg.CloudStorage.setItem(key, JSON.stringify(cloudData), (err, ok) => {
       if (err) console.error("Ошибка сохранения", err);
     });
   };
@@ -108,7 +111,7 @@ textarea.inp{resize:vertical}
 <body>
 <div class="wrap">
   <h1>ЛИСТ ПЕРСОНАЖА</h1>
-  <div class="sub"><span class="ver" id="verBtn">v5.6</span> · экспорт в JSON · работает офлайн</div>
+  <div class="sub"><span class="ver" id="verBtn">v5.7</span> · экспорт в JSON · работает офлайн</div>
   <div class="modebar"><span class="badge" id="modeBadge">РЕЖИМ СОЗДАНИЯ</span></div>
 
   <div class="card">
@@ -246,6 +249,17 @@ const LSKEY='character_sheet_v5';
 let state=migrate(null),openStat=null,clicks=0,clickTimer=null,toastTimer=null,diceOpen=false;
 
 function r1(x){return Math.round(x*10)/10}
+function escapeHTML(str) {
+  return str.replace(/[&<>'"]/g, 
+    tag => ({
+      '&': '&amp;',
+      '<': '&lt;',
+      '>': '&gt;',
+      "'": '&#39;',
+      '"': '&quot;'
+    }[tag] || tag)
+  );
+}
 function capFor(k){
  if(k==='end')return 100;
  if(state.stats.current_stats[k]>10)return 100;
@@ -295,6 +309,9 @@ function save(){
   state.resonance.range = document.getElementById('natRange').value;
   state.resonance.note = document.getElementById('natNote').value;
   state.notes = document.getElementById('notesIn').value;
+  
+  // Сохраняем картинку локально, а остальное в облако
+  try { localStorage.setItem('character_photo', state.photo); } catch(e) {}
   window.saveToCloud('character_save', state);
 }
 
@@ -303,6 +320,9 @@ function loadLocal(){
     if (raw) {
       const m = migrate(raw);
       state = m;
+      // Восстанавливаем фото из локального хранилища
+      try { state.photo = localStorage.getItem('character_photo') || ""; } catch(e) {}
+      
       fillInputs();
       renderPhoto();
       render();
@@ -363,7 +383,7 @@ function render(){
  document.getElementById('poolNum').textContent=state.pool.toFixed(1);
  document.getElementById('coresBlock').classList.toggle('hidden',!state.core_visible);
  let hl='';
- state.horus_memories.forEach((m,i)=>{hl+='<div><span>'+m.replace(/</g,'&lt;')+'</span></div>'});
+ state.horus_memories.forEach((m,i)=>{hl+='<div><span>'+escapeHTML(m)+'</span></div>'});
  document.getElementById('horusList').innerHTML=hl||'<div style="color:#8b949e;font-size:12px">пока пусто</div>';
  let chips='';
  for(let i=1;i<=10;i++){const lvl=state.abilities['ability_'+i]||0;if(lvl>0)chips+='<span class="chip">Способность '+i+': '+lvl+'</span>'}
@@ -413,7 +433,7 @@ function renderMaster(){
  document.getElementById('mPool').value=state.pool.toFixed(1);
  let mh='';
  state.horus_memories.forEach((m,i)=>{
-  mh+='<div class="mHorusItem"><span>'+m.replace(/</g,'&lt;')+'</span><button class="btn mini ghost" onclick="delHorus('+i+')">✕</button></div>';
+  mh+='<div class="mHorusItem"><span>'+escapeHTML(m)+'</span><button class="btn mini ghost" onclick="delHorus('+i+')">✕</button></div>';
  });
  document.getElementById('mHorusList').innerHTML=mh;
  let ma='';
@@ -475,18 +495,45 @@ function resetToCreate(){
 function openMaster(){document.getElementById('masterPanel').classList.add('open')}
 function closeMaster(){document.getElementById('masterPanel').classList.remove('open')}
 function toggleNature(){document.getElementById('natureBlock').classList.toggle('hidden',!document.getElementById('natChk').checked)}
-function delPhoto(){state.photo='';renderPhoto();save()}
+function delPhoto(){state.photo='';localStorage.removeItem('character_photo');renderPhoto();save()}
 function renderPhoto(){
  const b=document.getElementById('phBox');
  b.innerHTML=state.photo?'<img src="'+state.photo+'">':'нет фото';
 }
+
+// ИСПРАВЛЕННАЯ ЗАГРУЗКА ФОТО (Сжатие)
 document.getElementById('phFile').addEventListener('change',e=>{
  const f=e.target.files[0];if(!f)return;
  const rd=new FileReader();
- rd.onload=ev=>{state.photo=ev.target.result;renderPhoto();save()};
+ rd.onload=ev=>{
+   const img = new Image();
+   img.onload = () => {
+     const canvas = document.createElement('canvas');
+     const MAX_SIZE = 128; 
+     let width = img.width;
+     let height = img.height;
+
+     if (width > height) {
+       if (width > MAX_SIZE) { height *= MAX_SIZE / width; width = MAX_SIZE; }
+     } else {
+       if (height > MAX_SIZE) { width *= MAX_SIZE / height; height = MAX_SIZE; }
+     }
+
+     canvas.width = width;
+     canvas.height = height;
+     const ctx = canvas.getContext('2d');
+     ctx.drawImage(img, 0, 0, width, height);
+     
+     state.photo = canvas.toDataURL('image/jpeg', 0.7); 
+     renderPhoto();
+     save();
+   };
+   img.src = ev.target.result;
+ };
  rd.readAsDataURL(f);
  e.target.value='';
 });
+
 document.getElementById('impFile').addEventListener('change',e=>{
  const f=e.target.files[0];if(!f)return;
  const rd=new FileReader();
