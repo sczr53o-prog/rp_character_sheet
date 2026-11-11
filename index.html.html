@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Лист персонажа — v5.0</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<script>
+  // Инициализация WebApp (разворот на весь экран и цвета)
+  let tg = window.Telegram.WebApp;
+  tg.expand(); 
+  tg.setHeaderColor('#0d1117'); 
+  tg.setBackgroundColor('#0d1117');
+
+  // Функции для сохранения в облако Телеграма
+  window.saveToCloud = function(key, data) {
+    tg.CloudStorage.setItem(key, JSON.stringify(data), (err, ok) => {
+      if (err) console.error("Ошибка сохранения", err);
+    });
+  };
+
+  window.loadFromCloud = function(key, callback) {
+    tg.CloudStorage.getItem(key, (err, value) => {
+      if (err || !value) {
+        callback(null);
+      } else {
+        callback(JSON.parse(value));
+      }
+    });
+  };
+</script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#0d1117;color:#e6edf3;font-family:'Segoe UI',system-ui,-apple-system,sans-serif;padding:24px 12px 60px}
+.wrap{max-width:760px;margin:0 auto}
+h1{font-size:26px;letter-spacing:3px;text-align:center;font-weight:600}
+.sub{text-align:center;color:#8b949e;font-size:13px;margin:6px 0 14px}
+.ver{color:#7b8cff;cursor:pointer;user-select:none;padding:0 2px}
+.modebar{text-align:center;margin-bottom:16px}
+.badge{display:inline-block;font-size:11px;letter-spacing:2px;color:#a78bfa;border:1px solid #a78bfa;border-radius:20px;padding:4px 14px}
+.badge.game{color:#f5c518;border-color:#f5c518}
+.card{background:#161b22;border:1px solid #30363d;border-radius:12px;padding:16px 18px;margin-bottom:16px}
+.card h2{font-size:12px;letter-spacing:2px;color:#7b8cff;margin-bottom:12px;font-weight:600}
+.lbl{display:block;font-size:12px;color:#8b949e;margin:10px 0 4px}
+.inp{width:100%;background:#0d1117;border:1px solid #30363d;border-radius:8px;color:#e6edf3;padding:8px 10px;font-size:14px;outline:none}
+.inp:focus{border-color:#7b8cff}
+textarea.inp{resize:vertical}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.btn{background:#21262d;border:1px solid #30363d;color:#e6edf3;border-radius:8px;padding:8px 14px;font-size:13px;cursor:pointer}
+.btn:hover{border-color:#7b8cff}
+.btn:disabled{opacity:.35;cursor:not-allowed}
+.btn.accent{background:#7b8cff;border-color:#7b8cff;color:#0d1117;font-weight:600}
+.btn.accent:hover{background:#96a2ff}
+.btn.ghost{background:transparent}
+.btn.mini{padding:4px 10px;font-size:12px;margin-left:6px}
+.btn.wide{width:100%;margin-top:14px}
+.btnrow{display:flex;gap:10px;margin-top:12px;flex-wrap:wrap}
+.photoRow{display:flex;gap:14px;align-items:center;margin-top:12px}
+.ph{width:96px;height:96px;border:1px dashed #30363d;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:11px;color:#8b949e;overflow:hidden;flex:none}
+.ph img{width:100%;height:100%;object-fit:cover}
+.phBtns{display:flex;flex-direction:column;gap:8px}
+.poolbar{font-size:14px;color:#a78bfa;margin-bottom:6px}
+.poolerr{font-size:12px;color:#f85149;margin-bottom:8px}
+.hidden{display:none}
+.statrow{border:1px solid #30363d;border-radius:8px;padding:8px 10px;margin-bottom:8px;position:relative}
+.statrow.game{cursor:pointer}
+.statrow.game:hover{border-color:#7b8cff}
+.statline{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.statname{font-size:14px}
+.statval{font-size:14px;color:#e6edf3;white-space:nowrap}
+.statval .scale{color:#8b949e;font-size:12px;margin-left:8px}
+.statval.gold,.barfill.gold{color:#f5c518;background:#f5c518}
+.statval.gold{background:transparent}
+.bar{height:5px;background:#0d1117;border-radius:3px;margin-top:7px;overflow:hidden}
+.barfill{height:100%;background:#7b8cff;border-radius:3px;transition:width .2s}
+.menu{margin-top:8px;padding:8px;background:#0d1117;border:1px solid #30363d;border-radius:8px;display:flex;gap:6px;flex-wrap:wrap}
+.vessrow{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.vessel,.poolbig{background:#0d1117;border:1px solid #30363d;border-radius:10px;padding:12px;text-align:center}
+.vessel.over{border-color:#f85149}
+.vessel.over .vesselnum,.vessel.over .vesssub{color:#f85149}
+.vesselnum,.plnum{font-size:26px;font-weight:600;color:#a78bfa}
+.vesssub,.pllab{font-size:11px;color:#8b949e;margin-top:4px}
+.vesselover{color:#f85149;font-size:12px;margin-top:8px;text-align:center}
+.chk{display:flex;align-items:center;gap:8px;font-size:13px;margin:6px 0;cursor:pointer}
+.chkhint{color:#8b949e;font-size:11px}
+.subhead{font-size:11px;letter-spacing:1.5px;color:#8b949e;margin:14px 0 8px;text-transform:uppercase}
+.horuslist div,.mHorusItem{background:#0d1117;border:1px solid #30363d;border-radius:8px;padding:7px 10px;font-size:13px;margin-bottom:6px;display:flex;justify-content:space-between;gap:8px;align-items:center}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{background:#0d1117;border:1px solid #a78bfa;color:#a78bfa;border-radius:16px;padding:4px 12px;font-size:12px}
+.coreline{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid #21262d;font-size:13px}
+.coreline:last-child{border-bottom:none}
+.coreval{color:#a78bfa;font-size:13px;margin-right:auto;margin-left:12px}
+.rowflex{display:flex;gap:8px;margin-bottom:10px}
+.grow{flex:1}
+.master{position:fixed;top:0;right:0;height:100%;width:400px;max-width:94vw;background:#161b22;border-left:1px solid #30363d;padding:16px;overflow-y:auto;transform:translateX(105%);transition:transform .25s;z-index:50;box-shadow:-8px 0 30px rgba(0,0,0,.5)}
+.master.open{transform:none}
+.mhead{display:flex;justify-content:space-between;align-items:center;font-size:14px;letter-spacing:2px;color:#a78bfa;font-weight:600;margin-bottom:8px}
+.msec{font-size:11px;letter-spacing:1.5px;color:#8b949e;margin:16px 0 8px;text-transform:uppercase;border-top:1px solid #21262d;padding-top:12px}
+.mstat{display:grid;grid-template-columns:1fr 90px;gap:8px;align-items:center;margin-bottom:6px;font-size:13px}
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);background:#7b8cff;color:#0d1117;font-weight:600;font-size:13px;padding:10px 18px;border-radius:10px;opacity:0;transition:.3s;z-index:99;max-width:90vw;text-align:center}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>ЛИСТ ПЕРСОНАЖА</h1>
+  <div class="sub"><span class="ver" id="verBtn">v5.0</span> · экспорт в JSON · работает офлайн</div>
+  <div class="modebar"><span class="badge" id="modeBadge">РЕЖИМ СОЗДАНИЯ</span></div>
+
+  <div class="card">
+    <h2>ОСНОВНОЕ</h2>
+    <label class="lbl">Имя</label>
+    <input class="inp" id="nameIn" onchange="state.name=this.value">
+    <label class="lbl">Внешность (описание для ГМ)</label>
+    <textarea class="inp" id="appIn" rows="3" onchange="state.appearance=this.value"></textarea>
+    <div class="photoRow">
+      <div class="ph" id="phBox">нет фото</div>
+      <div class="phBtns">
+        <button class="btn" onclick="document.getElementById('phFile').click()">Загрузить фото</button>
+        <button class="btn ghost" onclick="delPhoto()">Удалить фото</button>
+      </div>
+    </div>
+    <input type="file" id="phFile" accept="image/*" hidden>
+  </div>
+
+  <div class="card">
+    <h2>ПАРАМЕТРЫ</h2>
+    <div class="poolbar" id="poolBar"></div>
+    <div class="poolerr hidden" id="poolErr">Пул исчерпан или значения вне допустимого — экспорт заблокирован.</div>
+    <div id="statsBox"></div>
+    <button class="btn accent" id="finishBtn" onclick="finish()">Завершить создание</button>
+  </div>
+
+  <div class="card">
+    <h2>ЯДРА И СОСУД</h2>
+    <div class="vessrow">
+      <div class="vessel" id="vesselBox">
+        <div class="vesselnum" id="vesselNum">0 / 5</div>
+        <div class="vesssub" id="vesselSub">свободно: 5</div>
+      </div>
+      <div class="poolbig">
+        <div class="plnum" id="poolNum">0.0</div>
+        <div class="pllab">Доступно очков</div>
+      </div>
+    </div>
+    <div class="vesselover hidden" id="vesselOver">Сосуд переполнен</div>
+    <label class="chk"><input type="checkbox" id="coreChk" onchange="state.core_visible=this.checked;render();save()"> Показать скрытые данные <span class="chkhint">галочка = разрешение Мастера</span></label>
+    <div class="hidden" id="coresBlock">
+      <div class="subhead">Слитые ядра (Хор)</div>
+      <div id="horusList"></div>
+      <div class="subhead">Особые способности</div>
+      <div class="chips" id="abilChips"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>ПРИРОДА</h2>
+    <label class="chk"><input type="checkbox" id="natChk" onchange="toggleNature()"> Показать блок резонанса <span class="chkhint">галочка = разрешение админа</span></label>
+    <div class="hidden" id="natureBlock">
+      <label class="lbl">Тип природы (резонанс, паутинка и т.д.)</label>
+      <input class="inp" id="natType" onchange="state.resonance.type=this.value">
+      <div class="grid2">
+        <div><label class="lbl">Радиус</label><input class="inp" id="natRadius" onchange="state.resonance.radius=this.value"></div>
+        <div><label class="lbl">Дальность</label><input class="inp" id="natRange" onchange="state.resonance.range=this.value"></div>
+      </div>
+      <label class="lbl">Примечание</label>
+      <input class="inp" id="natNote" onchange="state.resonance.note=this.value">
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>ЗАМЕТКИ И ИНВЕНТАРЬ</h2>
+    <textarea class="inp" id="notesIn" rows="6" onchange="state.notes=this.value"></textarea>
+    <div class="btnrow">
+      <button class="btn accent" onclick="exportJSON()">Экспорт JSON</button>
+      <button class="btn" onclick="document.getElementById('impFile').click()">Импорт JSON</button>
+    </div>
+    <input type="file" id="impFile" accept=".json,application/json" hidden>
+  </div>
+</div>
+
+<div class="master" id="masterPanel">
+  <div class="mhead">MODE: MASTER <button class="btn ghost" onclick="closeMaster()">✕</button></div>
+  <div class="msec" style="border-top:none">Текущие параметры (current_stats)</div>
+  <div id="mStats"></div>
+  <div class="msec">Сосуд</div>
+  <div class="grid2">
+    <div><label class="lbl">Максимум ядер</label><input type="number" class="inp" id="mVmax" onchange="state.vessel.max=Math.max(0,parseInt(this.value)||0);render();save()"></div>
+    <div><label class="lbl">Занято ядер</label><input type="number" class="inp" id="mVused" onchange="state.vessel.used=Math.max(0,parseInt(this.value)||0);render();save()"></div>
+  </div>
+  <div class="msec">Ядра (поглощение)</div>
+  <div id="mCores"></div>
+  <div class="msec">Пул вручную</div>
+  <input type="number" step="0.1" class="inp" id="mPool" onchange="state.pool=Math.max(0,r1(parseFloat(this.value)||0));render();save()">
+  <div class="msec">Слияние (Хор)</div>
+  <div class="rowflex">
+    <input class="inp grow" id="mHorusIn" placeholder="например: Саботёр-актёр: маскировка" onkeydown="if(event.key==='Enter')addHorus()">
+    <button class="btn accent" onclick="addHorus()">Слить</button>
+  </div>
+  <div id="mHorusList"></div>
+  <div class="msec">Особые способности</div>
+  <div id="mAbils"></div>
+  <button class="btn accent wide" onclick="resetToCreate()">Сбросить в режим редактирования</button>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+const STATS=[
+{k:'hand',n:'Удар рукой',f:v=>Math.round(v*130)+' кг'},
+{k:'kick',n:'Удар ногой',f:v=>Math.round(v*270.3)+' кг'},
+{k:'lift',n:'Подъём',f:v=>Math.round(v*51.1)+' кг'},
+{k:'speed',n:'Скорость',f:v=>(v*4.47).toFixed(1)+' км/ч'},
+{k:'reac',n:'Реакция',f:v=>Math.round(110-v)+' мс'},
+{k:'dur',n:'Прочность',f:v=>Math.round(v*200)+' кг'},
+{k:'end',n:'Выносливость',f:v=>v.toFixed(1)},
+{k:'agi',n:'Ловкость',f:v=>v.toFixed(1)}
+];
+const ABIL=['Пружина','Хитин','Молния','Титан','Кожа','Синтезатор','Тихий','Тёмный','Вожак','Эластик'];
+const POOL=6,STEP=0.5,VMIN=1.5,VMAX=3.0;
+const NEED={hand:[4],kick:[4],lift:[4],dur:[4],speed:[1,3],reac:[1,3],agi:[5,10]};
+const CORES=[['Охотник (слаб)',0.3],['Охотник (сред)',0.9],['Охотник (сильн)',1.5],['Саботёр (слаб)',0.3],['Саботёр (сред)',0.9],['Саботёр (сильн)',1.5],['Страж',2.0],['Аномалия',3.0]];
+const AMTS=[0.1,0.3,0.5,1.0];
+const LSKEY='character_sheet_v5';
+let state=migrate(null),openStat=null,clicks=0,clickTimer=null,toastTimer=null;
+
+function r1(x){return Math.round(x*10)/10}
+function capFor(k){
+ if(k==='end')return 100;
+ if(state.stats.current_stats[k]>10)return 100;
+ const need=NEED[k]||[];
+ return need.some(i=>(state.abilities['ability_'+i]||0)>0)?100:10;
+}
+function poolBroken(){
+ const used=STATS.reduce((a,s)=>a+(state.stats.current_stats[s.k]-VMIN)/STEP,0);
+ const out=STATS.some(s=>state.stats.current_stats[s.k]<VMIN-1e-9||state.stats.current_stats[s.k]>VMAX+1e-9);
+ return used>POOL+1e-9||out;
+}
+function migrate(raw){
+ raw=raw||{};
+ const st=(raw.stats&&(raw.stats.base_stats||raw.stats.current_stats))||raw.params||{};
+ const base={},cur={};
+ STATS.forEach(s=>{base[s.k]=typeof st[s.k]==='number'?st[s.k]:VMIN;cur[s.k]=base[s.k]});
+ if(raw.stats&&raw.stats.current_stats)STATS.forEach(s=>{if(typeof raw.stats.current_stats[s.k]==='number')cur[s.k]=raw.stats.current_stats[s.k]});
+ let pool=0,fromV4=false;
+ if(typeof raw.pool==='number')pool=raw.pool;
+ else if(raw.cores){pool=r1((raw.cores.physical||0)+(raw.cores.agility||0)+(raw.cores.special||0));fromV4=true}
+ const abilities={};for(let i=1;i<=10;i++)abilities['ability_'+i]=0;
+ if(raw.abilities){
+  for(let i=1;i<=10;i++){const v=raw.abilities['ability_'+i];if(typeof v==='number')abilities['ability_'+i]=v}
+  const legacy={spring:1,chitin:2,lightning:3,titan:4,skin:5};
+  for(const k in legacy){if(typeof raw.abilities[k]==='number')abilities['ability_'+legacy[k]]=raw.abilities[k]}
+ }
+ const vessel={max:5,used:0};
+ if(raw.vessel){
+  if(typeof raw.vessel.max==='number')vessel.max=raw.vessel.max;
+  if(typeof raw.vessel.used==='number')vessel.used=raw.vessel.used;
+ }
+ return{version:'5.0',mode:raw.mode==='game'?'game':'create',name:raw.name||'',appearance:raw.appearance||'',photo:raw.photo||'',
+  stats:{base_stats:base,current_stats:cur},pool:r1(pool),vessel,
+  horus_memories:Array.isArray(raw.horus_memories)?raw.horus_memories.slice():[],
+  abilities,core_visible:!!raw.core_visible,
+  resonance:raw.resonance||{type:'',radius:'',range:'',note:''},notes:raw.notes||'',_from:fromV4?'v4':(raw.params?'v23':(raw.stats?'v3':null))};
+}
+function toast(msg){
+ const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');
+ clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.classList.remove('show'),2600);
+}
+function save(){
+  // Собираем все данные из полей ввода
+  state.name = document.getElementById('nameIn').value;
+  state.appearance = document.getElementById('appIn').value;
+  state.resonance.type = document.getElementById('natType').value;
+  state.resonance.radius = document.getElementById('natRadius').value;
+  state.resonance.range = document.getElementById('natRange').value;
+  state.resonance.note = document.getElementById('natNote').value;
+  state.notes = document.getElementById('notesIn').value;
+  
+  // СОХРАНЯЕМ В ОБЛАКО ТЕЛЕГРАМА
+  window.saveToCloud('character_save', state);
+}
+
+function loadLocal(){
+  // ЗАГРУЖАЕМ ИЗ ОБЛАКА
+  window.loadFromCloud('character_save', (raw) => {
+    if (raw) {
+      const m = migrate(raw);
+      state = m;
+      // Если загрузка успешна, обновляем интерфейс
+      fillInputs();
+      renderPhoto();
+      render();
+    } else {
+      // Если в облаке пусто (новый игрок), просто рендерим пустой лист
+      render();
+    }
+  });
+}
+function fillInputs(){
+ document.getElementById('nameIn').value=state.name;
+ document.getElementById('appIn').value=state.appearance;
+ document.getElementById('natType').value=state.resonance.type;
+ document.getElementById('natRadius').value=state.resonance.radius;
+ document.getElementById('natRange').value=state.resonance.range;
+ document.getElementById('natNote').value=state.resonance.note;
+ document.getElementById('notesIn').value=state.notes;
+ document.getElementById('coreChk').checked=state.core_visible;
+}
+function render(){
+ const badge=document.getElementById('modeBadge');
+ badge.textContent=state.mode==='game'?'РЕЖИМ ИГРЫ':'РЕЖИМ СОЗДАНИЯ';
+ badge.className='badge'+(state.mode==='game'?' game':'');
+ document.getElementById('finishBtn').classList.toggle('hidden',state.mode!=='create');
+ document.getElementById('poolBar').classList.toggle('hidden',state.mode!=='create');
+ document.getElementById('poolErr').classList.toggle('hidden',!(state.mode==='create'&&poolBroken()));
+ if(state.mode==='create'){
+  const used=STATS.reduce((a,s)=>a+(state.stats.current_stats[s.k]-VMIN)/STEP,0);
+  document.getElementById('poolBar').textContent='Осталось очков: '+r1(POOL-used)+' / '+POOL+' · 1 очко = +0.5';
+ }
+ let sb='';
+ STATS.forEach(s=>{
+  const cur=state.stats.current_stats[s.k];
+  if(state.mode==='create'){
+   sb+='<div class="statrow"><div class="statline"><div class="statname">'+s.n+'</div><div class="statline"><div class="statval">'+s.f(cur)+
+   '<button class="btn mini" onclick="bump(\''+s.k+'\',-1)">−</button><button class="btn mini" onclick="bump(\''+s.k+'\',1)">+</button></div></div></div></div>';
+  }else{
+   const cap=capFor(s.k);
+   const dc=cur>10?100:10;
+   const gold=cur>10?' gold':'';
+   let menu='';
+   if(openStat===s.k){
+    menu='<div class="menu">'+AMTS.map(a=>{
+     const dis=r1(state.pool)<a||r1(cur+a)>cap;
+     return '<button class="btn mini" onclick="event.stopPropagation();spend(\''+s.k+'\','+a+')"'+(dis?' disabled':'')+'>+'+a.toFixed(1)+'</button>';
+    }).join('')+'</div>';
+   }
+   sb+='<div class="statrow game" onclick="toggleMenu(\''+s.k+'\')"><div class="statline"><div class="statname">'+s.n+'</div><div class="statval'+gold+'">'+s.f(cur)+
+   '<span class="scale'+gold+'">'+cur.toFixed(1)+' / '+dc+'</span></div></div><div class="bar"><div class="barfill'+gold+'" style="width:'+Math.min(100,cur/dc*100)+'%"></div></div>'+menu+'</div>';
+  }
+ });
+ document.getElementById('statsBox').innerHTML=sb;
+ const v=state.vessel,over=v.used>=v.max;
+ const vb=document.getElementById('vesselBox');
+ vb.classList.toggle('over',over);
+ document.getElementById('vesselNum').textContent=v.used+' / '+v.max;
+ document.getElementById('vesselSub').textContent='свободно: '+Math.max(0,v.max-v.used);
+ document.getElementById('vesselOver').classList.toggle('hidden',!over);
+ document.getElementById('poolNum').textContent=state.pool.toFixed(1);
+ document.getElementById('coresBlock').classList.toggle('hidden',!state.core_visible);
+ let hl='';
+ state.horus_memories.forEach((m,i)=>{hl+='<div><span>'+m.replace(/</g,'&lt;')+'</span></div>'});
+ document.getElementById('horusList').innerHTML=hl||'<div style="color:#8b949e;font-size:12px">пока пусто</div>';
+ let chips='';
+ for(let i=1;i<=10;i++){const lvl=state.abilities['ability_'+i]||0;if(lvl>0)chips+='<span class="chip">Способность '+i+': '+lvl+'</span>'}
+ document.getElementById('abilChips').innerHTML=chips||'<span style="color:#8b949e;font-size:12px">нет открытых способностей</span>';
+ renderMaster();
+}
+function bump(k,dir){
+ const v=r1(state.stats.current_stats[k]+dir*STEP);
+ state.stats.current_stats[k]=Math.min(VMAX,Math.max(VMIN,v));
+ render();save();
+}
+function toggleMenu(k){
+ if(openStat===k){openStat=null}
+ else{
+  openStat=k;
+  const cur=state.stats.current_stats[k];
+  if(cur>=capFor(k)&&capFor(k)===10)toast('Предел человеческих возможностей');
+ }
+ render();save();
+}
+function spend(k,amt){
+ const cur=state.stats.current_stats[k],cap=capFor(k);
+ if(cur>=cap)return;
+ if(r1(state.pool)<amt)return;
+ if(r1(cur+amt)>cap)return;
+ state.pool=r1(state.pool-amt);
+ state.stats.current_stats[k]=r1(cur+amt);
+ openStat=null;
+ render();save();
+}
+function renderMaster(){
+ let ms='';
+ STATS.forEach(s=>{
+  const cur=state.stats.current_stats[s.k];
+  ms+='<div class="mstat"><span>'+s.n+'</span><input type="number" step="0.1" class="inp" value="'+cur.toFixed(1)+'" onchange="setCur(\''+s.k+'\',this.value)"></div>';
+ });
+ document.getElementById('mStats').innerHTML=ms;
+ document.getElementById('mVmax').value=state.vessel.max;
+ document.getElementById('mVused').value=state.vessel.used;
+ let mc='';
+ CORES.forEach((c,i)=>{
+  mc+='<div class="coreline"><span>'+c[0]+'</span><span class="coreval">+'+c[1].toFixed(1)+'</span><span><button class="btn mini" onclick="addCore('+i+')">+</button><button class="btn mini" onclick="delCore('+i+')">−</button></span></div>';
+ });
+ document.getElementById('mCores').innerHTML=mc;
+ document.getElementById('mPool').value=state.pool.toFixed(1);
+ let mh='';
+ state.horus_memories.forEach((m,i)=>{
+  mh+='<div class="mHorusItem"><span>'+m.replace(/</g,'&lt;')+'</span><button class="btn mini ghost" onclick="delHorus('+i+')">✕</button></div>';
+ });
+ document.getElementById('mHorusList').innerHTML=mh;
+ let ma='';
+ ABIL.forEach((n,i)=>{
+  ma+='<div class="mstat"><span>'+n+'</span><input type="number" class="inp" value="'+(state.abilities['ability_'+(i+1)]||0)+'" onchange="setAbil('+i+',this.value)"></div>';
+ });
+ document.getElementById('mAbils').innerHTML=ma;
+}
+function setCur(k,val){
+ const v=parseFloat(val);
+ if(isNaN(v))return;
+ state.stats.current_stats[k]=r1(v);
+ render();save();
+}
+function setAbil(i,val){
+ const v=parseInt(val);
+ state.abilities['ability_'+(i+1)]=isNaN(v)?0:Math.max(0,v);
+ render();save();
+}
+function addCore(i){
+ const d=CORES[i][1];
+ state.pool=r1(state.pool+d);
+ state.vessel.used=state.vessel.used+1;
+ if(state.vessel.used>state.vessel.max)toast('Сосуд переполнен!');
+ render();save();
+}
+function delCore(i){
+ const d=CORES[i][1];
+ state.pool=r1(Math.max(0,state.pool-d));
+ state.vessel.used=Math.max(0,state.vessel.used-1);
+ render();save();
+}
+function addHorus(){
+ const inp=document.getElementById('mHorusIn');
+ const t=inp.value.trim();
+ if(!t)return;
+ state.horus_memories.push(t);
+ inp.value='';
+ render();save();
+}
+function delHorus(i){
+ state.horus_memories.splice(i,1);
+ render();save();
+}
+function setPool(val){
+ const v=parseFloat(val);
+ state.pool=isNaN(v)?0:Math.max(0,r1(v));
+ render();save();
+}
+function finish(){
+ if(poolBroken()){toast('Пул исчерпан или значения вне допустимого — завершение заблокировано');return;}
+ STATS.forEach(s => { state.stats.base_stats[s.k] = state.stats.current_stats[s.k]; });
+ state.mode='game';
+ render();save();
+ toast('Создание завершено — режим игры');
+}
+function resetToCreate(){
+ state.mode='create';
+ render();save();
+ closeMaster();
+ toast('Возврат в режим редактирования');
+}
+function openMaster(){document.getElementById('masterPanel').classList.add('open')}
+function closeMaster(){document.getElementById('masterPanel').classList.remove('open')}
+function toggleNature(){document.getElementById('natureBlock').classList.toggle('hidden',!document.getElementById('natChk').checked)}
+function delPhoto(){state.photo='';renderPhoto();save()}
+function renderPhoto(){
+ const b=document.getElementById('phBox');
+ b.innerHTML=state.photo?'<img src="'+state.photo+'">':'нет фото';
+}
+document.getElementById('phFile').addEventListener('change',e=>{
+ const f=e.target.files[0];if(!f)return;
+ const rd=new FileReader();
+ rd.onload=ev=>{state.photo=ev.target.result;renderPhoto();save()};
+ rd.readAsDataURL(f);
+ e.target.value='';
+});
+document.getElementById('impFile').addEventListener('change',e=>{
+ const f=e.target.files[0];if(!f)return;
+ const rd=new FileReader();
+ rd.onload=ev=>{
+  try{
+   const m=migrate(JSON.parse(ev.target.result));
+   state=m;openStat=null;
+   fillInputs();renderPhoto();render();save();
+   if(m._from==='v4')toast('Лист v4.0 обновлён до v5.0');
+   else if(m._from==='v23')toast('Старый лист перенесён в v5.0');
+   else if(m._from==='v3')toast('Лист v3.0 обновлён до v5.0');
+  }catch(err){toast('Не удалось прочитать файл')}
+ };
+ rd.readAsText(f);
+ e.target.value='';
+});
+function exportJSON(){
+ if(state.mode==='create'&&poolBroken()){toast('Пул исчерпан или значения вне допустимого — экспорт заблокирован');return}
+ save();
+ const data={
+  version:'5.0',mode:state.mode,name:state.name,appearance:state.appearance,photo:state.photo,
+  stats:{base_stats:state.stats.base_stats,current_stats:state.stats.current_stats},
+  pool:state.pool,vessel:{max:state.vessel.max,used:state.vessel.used},
+  horus_memories:state.horus_memories,abilities:state.abilities,core_visible:state.core_visible,
+  resonance:{type:state.resonance.type,radius:state.resonance.radius,range:state.resonance.range,note:state.resonance.note},
+  notes:state.notes
+ };
+ const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+ const a=document.createElement('a');
+ a.href=URL.createObjectURL(blob);
+ a.download=(state.name||'лист_персонажа')+'_v5.0.json';
+ a.click();URL.revokeObjectURL(a.href);
+}
+document.getElementById('verBtn').addEventListener('click',()=>{
+ clicks++;clearTimeout(clickTimer);
+ clickTimer=setTimeout(()=>{clicks=0},2500);
+ if(clicks>=5){clicks=0;openMaster()}
+});
+loadLocal();
+</script>
+</body>
+</html>
